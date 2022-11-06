@@ -705,16 +705,30 @@ class Parser():
         return ppt, pmt
 
     @staticmethod
+    def _get_address(text, settlement):
+        res = re.findall(f"(?<=Почтовый адрес ориентира:\s)[0-9а-яА-Я.,\s]+", text)
+        if res:
+            return res
+        return re.findall(f"(?<={settlement},\s)[0-9а-яА-Я.,\s]+", text)
+
+
+
+    @staticmethod
     def _get_settlement(text):
-        return re.findall("(?<=муниципальное образование\s)[а-яА-Я]+", text)
+        return re.findall("(?<=[муниципальное образование|поселение]\s)[а-яА-Я]+", text)
 
     def _postprocess_location(self, location):
         print('----------------')
-        print(self._get_settlement(location))
+        try:
+            settlement = self._get_settlement(location)[0]
+            address = self._get_address(location, settlement)[0]
+        except:
+            settlement, address = None, None
+
         if type(location) is not str:
             return [None] * 3
 
-        return [None] * 3
+        return [None, settlement, address ]
 
     def _postprocess_usekinds(self, usekinds):
         if type(usekinds) is not str:
