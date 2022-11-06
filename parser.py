@@ -543,8 +543,12 @@ class Parser():
         }
         self._parsed["Параметры и площади строящихся и реконструируемых объектов капитального строительства (ОКС) на ЗУ"] = cap_params
 
-        (has_existing_caps, existing_caps_cnt, existing_caps_objective, existing_caps_descr,
-            existing_caps_floors, existing_caps_area) = self._postprocess_existing_cap_params()
+        try:
+            (has_existing_caps, existing_caps_cnt, existing_caps_objective, existing_caps_descr,
+                existing_caps_floors, existing_caps_area) = self._postprocess_existing_cap_params()
+        except:
+            (has_existing_caps, existing_caps_cnt, existing_caps_objective, existing_caps_descr,
+             existing_caps_floors, existing_caps_area) = [None] * 6
         existing_cap_params = {
             "Наличие или отсутствие существующих на ЗУ ОКС": has_existing_caps,
             "Общее число существующих ОКС, единиц": existing_caps_cnt,
@@ -555,7 +559,10 @@ class Parser():
         }
         self._parsed["Параметры и площади существующих на ЗУ объектов капитального строительства (ОКС)"] = existing_cap_params
 
-        has_heritage, heritage_cnt, heritage_desc, heritage_ids, heritage_regn = self._postprocess_heritage()
+        try:
+            has_heritage, heritage_cnt, heritage_desc, heritage_ids, heritage_regn = self._postprocess_heritage()
+        except:
+            has_heritage, heritage_cnt, heritage_desc, heritage_ids, heritage_regn = [None] * 5
         heritage = {
             "Наличие или отсутствие существующих на ЗУ ОКН": has_heritage,
             "Общее число существующих на ЗУ ОКН": heritage_cnt,
@@ -563,7 +570,7 @@ class Parser():
             "Идентификационный номер ОКН": heritage_ids,
             "Регистрационный номер ОКН": heritage_regn
         }
-        self._parsed["Объекты,включенные в единый государственный реестр объектов культурного наследия (ОКН)"] = heritage
+        self._parsed["Объекты,включенные в едиhas_heritage, heritage_cnt, heritage_desc, heritage_ids, heritage_regnный государственный реестр объектов культурного наследия (ОКН)"] = heritage
 
     def _get_ids(self):
         subzones = self._data.get("subzones")
@@ -910,10 +917,29 @@ class Parser():
         param1 = "Отсутствуют" if text == "Информация отсутствует" else "Присутствуют"
         if param1 == "Отсутствуют":
             param2 = 0
+            param3 = "Нет"
+            param4 = "Нет"
+            param5 = 0
+            return [param1, param2, param3, param4, param5, None]
+
+        param2 = len(re.findall("№", text))
+        param3 = list(filter(lambda x: x != "Нежилое", re.findall("(?<=Назначение:\s)\w+", text)))
+
+        if len(param3) == param2:
+            param3 = "Жилое"
+        elif not len(param3):
+            param3 = "Нежилое"
         else:
-            param2 = len(re.findall("№", text))
-        print(re.findall("№", text))
-        return [param1, param2] + [None] * 4
+            param3 = "Смешанное"
+
+        param4 = re.findall("(?<=№\d\s)[\w\s]+", text)
+
+        try:
+            param5 = max(list(map(lambda x: max([int(y) for y in x.split('-')]), re.findall("(?<=Количество этажей:\s)[\d-]+", text))))
+        except:
+            param5 = 0
+
+        return [param1, param2, param3, param4, param5, None]
 
     def _postprocess_heritage(self):
         print('++-----++++++++')
@@ -923,6 +949,7 @@ class Parser():
             param2 = 0
         else:
             param2 = len(re.findall("№", text))
+        # param3 = re.findall("(?<=Назначение:\s)\w+", text)
         return [param1, param2] + [None] * 3
 
     def _extract_dates(self):
