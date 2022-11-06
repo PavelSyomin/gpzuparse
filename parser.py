@@ -493,7 +493,10 @@ class Parser():
         }
         self._parsed["Реквизиты ГПЗУ"] = gpzu_basic_info
 
-        adm_district, settlement, address = self._postprocess_location(self._data.get("location"))
+        try:
+            adm_district, settlement, address = self._postprocess_location(self._data.get("location"))
+        except:
+            adm_district, settlement, address = [None] * 3
         cad_number = self._postprocess_cad_number(self._data.get("cad_number"))
         ppt, pmt = self._postprocess_ppt_pmt(self._data.get("ppt_pmt"))
         gpzu_location = {
@@ -911,8 +914,6 @@ class Parser():
         return "Есть" if unregulated else "Нет"
 
     def _postprocess_existing_cap_params(self):
-        print('++++++++++')
-        print(self._data.get('capital_buildings_descr'))
         text = self._data.get('capital_buildings_descr')
         param1 = "Отсутствуют" if text == "Информация отсутствует" else "Присутствуют"
         if param1 == "Отсутствуют":
@@ -920,7 +921,8 @@ class Parser():
             param3 = "Нет"
             param4 = "Нет"
             param5 = 0
-            return [param1, param2, param3, param4, param5, None]
+            param6 = 0
+            return [param1, param2, param3, param4, param5, param6]
 
         param2 = len(re.findall("№", text))
         param3 = list(filter(lambda x: x != "Нежилое", re.findall("(?<=Назначение:\s)\w+", text)))
@@ -932,25 +934,38 @@ class Parser():
         else:
             param3 = "Смешанное"
 
-        param4 = re.findall("(?<=№\d\s)[\w\s]+", text)
+        param4 = ', '.join(re.findall("(?<=№\d\s)[\w\s]+", text))
 
         try:
             param5 = max(list(map(lambda x: max([int(y) for y in x.split('-')]), re.findall("(?<=Количество этажей:\s)[\d-]+", text))))
         except:
             param5 = 0
 
-        return [param1, param2, param3, param4, param5, None]
+        try:
+            param6 = round(sum(list(map(lambda x: float(x), re.findall("(?<=Площадь:\s)[\d.]+", text)))), 2)
+        except:
+            param6 = 0
+
+        return [param1, param2, param3, param4, param5, param6]
 
     def _postprocess_heritage(self):
-        print('++-----++++++++')
-        text = self._data.get('heritage')
         param1 = "Отсутствуют" if text == "Информация отсутствует" else "Присутствуют"
         if param1 == "Отсутствуют":
             param2 = 0
-        else:
-            param2 = len(re.findall("№", text))
-        # param3 = re.findall("(?<=Назначение:\s)\w+", text)
-        return [param1, param2] + [None] * 3
+            param3 = "Нет"
+            param4 = "Нет"
+            param5 = "Нет"
+            return [param1, param2, param3, param4, param5]
+
+        param2 = len(re.findall("№", text))
+        param3 = "; ".join(re.findall("(?<=Наименование объекта:\s)[\w\s\d]+", text))
+        if not param3:
+            param3 = "; ".join(re.findall("(?<=Наименование ансамбля:\s)[\w\s\d]+", text))
+
+        param4 = "; ".join(re.findall("(?<=Идентификационный номер объекта:\s)\d+", text))
+        param5 = "; ".join(re.findall("(?<=Регистрационный номер объекта:\s)\d+", text))
+
+        return [param1, param2, param3, param4, param5]
 
     def _extract_dates(self):
         self._data["start_date"] = self._extract_date()
