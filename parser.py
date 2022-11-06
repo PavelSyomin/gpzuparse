@@ -165,11 +165,16 @@ class Parser():
         # Detect subject type
         #self._data["subject_type"] = self._extract_subject_type()
 
+    def _build_cache_file_path(self, file_path):
+        cache_path = pathlib.Path("cache")
+        file_path = file_path.replace(".pdf", ".dump")
+        pdf_file =  pathlib.Path(file_path)
+        cache_file = cache_path / pdf_file.name
 
-
+        return cache_file
 
     def _load_from_cache(self, file_path):
-        cache_file = pathlib.Path("cache") / file_path.replace(".pdf", ".dump")
+        cache_file = self._build_cache_file_path(file_path)
         if cache_file.exists():
             try:
                 with open(cache_file, "rb") as f:
@@ -186,9 +191,7 @@ class Parser():
         return False
 
     def _save_to_cache(self, file_path):
-        cache_dir = pathlib.Path("cache")
-        cache_dir.mkdir(parents=True, exist_ok=True)
-        cache_file = cache_dir / file_path.replace(".pdf", ".dump")
+        cache_file = self._build_cache_file_path(file_path)
 
         try:
             with open(cache_file, "wb") as f:
@@ -197,8 +200,9 @@ class Parser():
                     "text": self._text
                 }
                 pickle.dump(data, f)
-        except:
+        except Exception as e:
             print(f"Cannot save to cache")
+            print(e)
 
     def get_result(self):
         return self._parsed
@@ -821,7 +825,11 @@ class Parser():
         return result
 
     def _postprocess_unregulated(self):
-        return None
+        unregulated = self._data.get("has_unregulated_objects")
+        if not unregulated:
+            return None
+
+        return "Есть" if unregulated else "Нет"
 
     def _postprocess_existing_cap_params(self):
         return [None] * 6
