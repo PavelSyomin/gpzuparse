@@ -2,6 +2,7 @@ import datetime
 import json
 import mimetypes
 import pathlib
+import traceback
 
 import pandas as pd
 
@@ -35,7 +36,8 @@ for folder in folders.values():
 @app.post("/", response_class=HTMLResponse)
 async def root(request: Request):
     files = get_files()
-    return templates.TemplateResponse("main.html", {"request": request, "data": files})
+    return templates.TemplateResponse("main.html",
+                {"request": request, "data": files})
 
 @app.get("/view")
 async def view(request: Request, file_name: str):
@@ -59,12 +61,22 @@ async def download(request: Request, file_name: str, file_type: str):
 
         filename = path.name
         return FileResponse(path=out_path, media_type=media_type, filename=filename)
+    else:
+        return {"status": "Error", "message": "Cannot download file"}
 
 @app.get("/delete")
 async def delete_file(request: Request, file_name: str):
     path = pathlib.Path(folders["devplans"]) / f"{file_name}.pdf"
     if path.is_file():
         path.unlink()
+
+    cache_path = pathlib.Path(folders["cache"])
+    file_path = file_path.replace(".pdf", ".dump")
+    pdf_file =  pathlib.Path(file_path)
+    cache_file = cache_path / pdf_file.name
+
+    if cache_file.is_file():
+        cache_file.unlink()
 
     return RedirectResponse("/", status_code=302)
 
@@ -218,15 +230,15 @@ def parse_and_save_file(file_name, file_type="json"):
 
     if not pdf_path.is_file():
         return None
-    print(pdf_path)
+
     try:
         parser.load_pdf(str(pdf_path))
         parser.parse()
         result = parser.get_result()
     except Exception as e:
-        print(e)
+        print(print(traceback.format_exc()))
         return None
-    print(len(result))
+
     if file_type == "json":
         out_path = save_json(file_name, result)
     elif file_type == "xlsx":
@@ -275,6 +287,6 @@ def save_excel(file_name, result):
 
     final_df = pd.concat(dfs, axis=1)
 
-    final_df.to_excel(str(out_path))
+    final_df.to_excel(str(out_path), index=None)
 
     return out_path
