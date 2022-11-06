@@ -5,8 +5,12 @@ import re
 
 import numpy as np
 import pandas as pd
+import pymorphy2
 import PyPDF2
 import tabula
+
+
+morph = pymorphy2.MorphAnalyzer()
 
 
 class Parser():
@@ -579,6 +583,47 @@ class Parser():
 
         return date.strftime("%d.%m.%Y")
 
+    @staticmethod
+    def _find_noun(words):
+        nouns = list(filter(lambda x: morph.parse(x)[0].tag.POS == "NOUN", words.split()))
+        if nouns:
+            return nouns
+        return None
+
+    def _change_form_to_normal(self, text):
+        words = text.split("\"")
+
+        parsed_words = []
+
+        for i, word_seq in enumerate(words):
+            if i % 2:
+                parsed_words.append(word_seq)
+                continue
+
+            parsed_words_ = []
+            for word in word_seq.split():
+                noun = self._find_noun(word_seq)
+                if noun is None:
+                    number, gender = None, None
+                    parsed_words_.extend([morph.parse(word)[0].normal_form for word in words])
+                elif len(noun) > 1:
+                    parsed_words.append(word_seq)
+                    break
+                else:
+                    noun = noun[0]
+                    number, gender = morph.parse(noun)[0].tag.number, morph.parse(noun)[0].tag.gender
+
+                parsed_word = morph.parse(word)[0]
+
+                if parsed_word.tag.POS not in ["ADJF"]:
+                    parsed_words_.append(parsed_word.normal_form)
+                else:
+                    parsed_words_.append(morph.parse(parsed_word.normal_form)[0].inflect({number, gender}).word)
+
+            parsed_words.append(" ".join(parsed_words_) + " ")
+
+        return "\"".join(parsed_words)
+
     def _postprocess_rightsholder(self, rightsholder):
         if rightsholder is None:
             return None
@@ -587,8 +632,7 @@ class Parser():
             rightsholder =  rightsholder.replace("обращения ", "")
 
         rightsholder = re.sub(r"от \d{2}\.\d{2}.\d{4}", "", rightsholder).strip()
-
-        return rightsholder
+        return self._change_form_to_normal(rightsholder)
 
     def _detect_rightsholder_type(self, rightsholder):
         if not rightsholder:
@@ -899,3 +943,6 @@ class Parser():
                 return "Действует"
             else:
                 return "Срок действия истек"
+
+
+print(morph.parse("акционерного общества"))
