@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Парсер ГПЗУ от команды GPZU_Leaders</title>
+        <link rel="stylesheet" href="{{ url_for('templates', path='/pure-min.css') }}">
+        <link rel="stylesheet" href="{{ url_for('templates', path='/grids-responsive-min.css') }}">
+        <link rel="stylesheet" href="{{ url_for('templates', path='/style.css') }}">
+    </head>
+    <body>
+        <div class="container pure-g">
+            <div class="pure-u-1-24"></div>
+            <div class="pure-u-2-3">
+                <h1>Ранее загруженные файлы</h1>
+                {% if data | length == 0 %}
+                    <p>Файлов нет. Загрузите их с помощью кнопки справа или напрямую скопируйте в папку <code>media/devplans</code> на сервере, где запущено приложение.</p>
+                {% else %}
+                    {% for f in data %}
+                    <div class="pure-g devplan-row">
+                        <div class="pure-u-1-5">
+                            <img class="pure-img" src="{{ url_for('templates', path='/thumb.png') }}" alt="">
+                        </div>
+                        <div class="pure-u-4-5 devplan">
+                            <div class="devplan-header">
+                                <h4>{{ f.name }}</h4>
+                                <p>{{ f.date }}</p>
+                            </div>
+                            <div class="devplan-footer">
+                                {% if f.status == "not_parsed" %}
+                                    <a class="devplan-button" href="{{ f.urls.parse }}">Распознать</a>
+                                {% else %}
+                                    <a class="devplan-button" href="{{ f.urls.view }}">Открыть</a>
+                                    <span class="devplan-button">
+                                        Скачать:
+                                        {% for key, value in f.urls.download.items() %}
+                                        <a href="{{ value }}">{{ key }}</a>
+                                        {% endfor %}
+                                    </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% endif %}
+            </div>
+            <div class="pure-u-1-4">
+                <div class="upload">
+                    <img class="upload-logo" src="{{ url_for('templates', path='/upload.png') }}" alt="">
+                    <form class="upload-form" method="POST" action="/devplans/" enctype="multipart/form-data">
+                        <input id="file" class="upload-file-input" type="file" name="file" accept="application/pdf" required>
+                        <button type="submit" class="button-xlarge pure-button upload-button">Добавить новый файл</button>
+                    </form>
+                </div>
+            </div>
+            <div class="pure-u-1-24"></div>
+        </div>
+    </body>
+</html>
