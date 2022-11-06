@@ -618,7 +618,10 @@ class Parser():
                 if parsed_word.tag.POS not in ["ADJF"]:
                     parsed_words_.append(parsed_word.normal_form)
                 else:
-                    parsed_words_.append(morph.parse(parsed_word.normal_form)[0].inflect({number, gender}).word)
+                    try:
+                        parsed_words_.append(morph.parse(parsed_word.normal_form)[0].inflect({number, gender}).word)
+                    except:
+                        parsed_words_.append(parsed_word.normal_form)
 
             parsed_words.append(" ".join(parsed_words_) + " ")
 
@@ -701,7 +704,13 @@ class Parser():
 
         return ppt, pmt
 
+    @staticmethod
+    def _get_settlement(text):
+        return re.findall("(?<=муниципальное образование\s)[а-яА-Я]+", text)
+
     def _postprocess_location(self, location):
+        print('----------------')
+        print(self._get_settlement(location))
         if type(location) is not str:
             return [None] * 3
 
