@@ -1,0 +1,9 @@
+fastapi=0.86.0
+Jinja2==3.1.2
+opencv-python==4.6.0.66
+openpyxl==3.0.10
+pandas==1.5.1
+pymorphy2==0.9.1
+PyPDF2==2.11.1
+tabula-py==2.5.1
+uvicorn==0.19.0
