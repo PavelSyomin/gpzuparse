@@ -243,6 +243,7 @@ class Parser():
     def _get_attr_by_position(self, text=None, start=None,
                               start_header=None, stop_header=None,
                               offset=None, length=None):
+        # print(stop_header)
         if not all((text, start, start_header, stop_header, offset)):
             return None
 
@@ -715,13 +716,17 @@ class Parser():
 
     @staticmethod
     def _get_settlement(text):
-        return re.findall("(?<=[муниципальное образование|поселение]\s)[а-яА-Я]+", text)
+        res = re.findall("(?<=поселение\s)[а-яА-Я]+", text)
+        if res:
+            return res
+        return re.findall("(?<=муниципальное образование\s)[а-яА-Я]+", text)
 
     def _postprocess_location(self, location):
         print('----------------')
         try:
             settlement = self._get_settlement(location)[0]
             address = self._get_address(location, settlement)[0]
+            print(settlement, address)
         except:
             settlement, address = None, None
 
@@ -875,7 +880,7 @@ class Parser():
     def _get_sums(self, elements):
         if not elements or len(elements) == 0:
             return {}
-        print(elements)
+
         keys = elements[0].keys()
         result = {}
 
@@ -899,10 +904,26 @@ class Parser():
         return "Есть" if unregulated else "Нет"
 
     def _postprocess_existing_cap_params(self):
-        return [None] * 6
+        print('++++++++++')
+        print(self._data.get('capital_buildings_descr'))
+        text = self._data.get('capital_buildings_descr')
+        param1 = "Отсутствуют" if text == "Информация отсутствует" else "Присутствуют"
+        if param1 == "Отсутствуют":
+            param2 = 0
+        else:
+            param2 = len(re.findall("№", text))
+        print(re.findall("№", text))
+        return [param1, param2] + [None] * 4
 
     def _postprocess_heritage(self):
-        return [None] * 5
+        print('++-----++++++++')
+        text = self._data.get('heritage')
+        param1 = "Отсутствуют" if text == "Информация отсутствует" else "Присутствуют"
+        if param1 == "Отсутствуют":
+            param2 = 0
+        else:
+            param2 = len(re.findall("№", text))
+        return [param1, param2] + [None] * 3
 
     def _extract_dates(self):
         self._data["start_date"] = self._extract_date()
@@ -967,5 +988,3 @@ class Parser():
             else:
                 return "Срок действия истек"
 
-
-print(morph.parse("акционерного общества"))
