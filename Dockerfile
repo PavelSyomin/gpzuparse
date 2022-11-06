@@ -5,6 +5,7 @@ COPY app.py /home/app
 COPY parser.py /home/app
 COPY test.py /home/app
 COPY templates /home/app/templates/
+COPY media/devplans home/app/media/devplans
 COPY requirements.txt /home/app
 RUN pip install -r requirements.txt
 RUN apt update

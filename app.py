@@ -16,7 +16,6 @@ from parser import Parser
 
 folders = {
     "devplans": "media/devplans",
-    "images": "media/images",
     "cache": "cache",
     "templates": "templates",
     "tmp": "tmp"
@@ -70,11 +69,7 @@ async def delete_file(request: Request, file_name: str):
     if path.is_file():
         path.unlink()
 
-    cache_path = pathlib.Path(folders["cache"])
-    file_path = file_path.replace(".pdf", ".dump")
-    pdf_file =  pathlib.Path(file_path)
-    cache_file = cache_path / pdf_file.name
-
+    cache_file = pathlib.Path(folders["cache"]) / f"{file_name}.dump"
     if cache_file.is_file():
         cache_file.unlink()
 
