@@ -1,3 +1,4 @@
+import sys
 import datetime
 import pathlib
 import pickle
@@ -109,8 +110,15 @@ class Parser():
         #self._data = None
         self._cache = None
         self._type = None
+        self._district_data = pd.read_csv("./sample_pdfs/data-6434-2018-12-18.csv", encoding="Windows-1251",
+                                          delimiter=";")
 
+        self._districts = self._create_distict_dict()
 
+    def _create_distict_dict(self):
+        districts = self._district_data.loc[self._district_data["Name"].str.contains("административный округ")]
+        codes = list(map(lambda x: str(x)[2:5], districts['Kod_okato']))
+        return dict(zip(codes, districts["Name"]))
 
     def load_pdf(self, file_path):
         self._text = {}
@@ -373,7 +381,7 @@ class Parser():
 
     def _extract_data_by_subzones(self, subzones):
         data = {}
-
+        print('subzones', subzones)
         for subzone in subzones:
             if subzone["subzone_index"].any():
                 title_cell = str(subzone.iat[0, 0])
@@ -573,7 +581,7 @@ class Parser():
             "Идентификационный номер ОКН": heritage_ids,
             "Регистрационный номер ОКН": heritage_regn
         }
-        self._parsed["Объекты,включенные в едиhas_heritage, heritage_cnt, heritage_desc, heritage_ids, heritage_regnный государственный реестр объектов культурного наследия (ОКН)"] = heritage
+        self._parsed["Объекты,включенные в единый государственный реестр объектов культурного наследия (ОКН)"] = heritage
 
     def _get_ids(self):
         subzones = self._data.get("subzones")
@@ -722,8 +730,6 @@ class Parser():
             return res
         return re.findall(f"(?<={settlement},\s)[0-9а-яА-Я.,\s]+", text)
 
-
-
     @staticmethod
     def _get_settlement(text):
         res = re.findall("(?<=поселение\s)[а-яА-Я]+", text)
@@ -731,19 +737,24 @@ class Parser():
             return res
         return re.findall("(?<=муниципальное образование\s)[а-яА-Я]+", text)
 
+    def _get_adm_district(self, settlement):
+        code = self._district_data.loc[self._district_data["Name"].str.contains(settlement)]["Kod_okato"].values[0]
+        code = str(code)[2:5]
+        return self._districts[code]
+
     def _postprocess_location(self, location):
         print('----------------')
         try:
             settlement = self._get_settlement(location)[0]
             address = self._get_address(location, settlement)[0]
-            print(settlement, address)
+            district = self._get_adm_district(settlement)
         except:
-            settlement, address = None, None
+            settlement, address, district = None, None, None
 
         if type(location) is not str:
             return [None] * 3
 
-        return [None, settlement, address ]
+        return [district, settlement, address ]
 
     def _postprocess_usekinds(self, usekinds):
         if type(usekinds) is not str:
@@ -861,6 +872,8 @@ class Parser():
                              "Встроенно-пристроенных, отдельно стоящих нежилых помещений", "Подземного пространства")
 
         objectives, descriptions, floor_areas, total_areas = [], [], [], []
+        print('ddddddddddd')
+        print(subzones.values())
         for szn in subzones.values():
             descr = szn.get("description")
             descriptions.append(descr)
@@ -933,8 +946,12 @@ class Parser():
             param3 = "Нежилое"
         else:
             param3 = "Смешанное"
-
-        param4 = ', '.join(re.findall("(?<=№\d\s)[\w\s]+", text))
+        print(text)
+        # \d\s
+        param4 = ', '.join([x.strip() for x in re.findall("(?<=№\s\d\sна чертеже ГПЗУ\s)[\w\s]+(?=\sАдрес)", text)])
+        print(len(param4), param4)
+        if not len(param4):
+            param4 = ', '.join([x.strip() for x in re.findall("(?<=№\d\s)[\w\s]+", text)])
 
         try:
             param5 = max(list(map(lambda x: max([int(y) for y in x.split('-')]), re.findall("(?<=Количество этажей:\s)[\d-]+", text))))
@@ -949,6 +966,7 @@ class Parser():
         return [param1, param2, param3, param4, param5, param6]
 
     def _postprocess_heritage(self):
+        text = self._data.get('heritage')
         param1 = "Отсутствуют" if text == "Информация отсутствует" else "Присутствуют"
         if param1 == "Отсутствуют":
             param2 = 0
@@ -964,6 +982,15 @@ class Parser():
 
         param4 = "; ".join(re.findall("(?<=Идентификационный номер объекта:\s)\d+", text))
         param5 = "; ".join(re.findall("(?<=Регистрационный номер объекта:\s)\d+", text))
+
+        if not len(param3):
+            param3 = "-"
+
+        if not len(param4):
+            param4 = "-"
+
+        if not len(param5):
+            param5 = "-"
 
         return [param1, param2, param3, param4, param5]
 
@@ -1005,7 +1032,7 @@ class Parser():
         if not date:
             return
 
-        end_date = date + datetime.timedelta(days=3*365)
+        end_date = datetime.date(date.year + 3, date.month, date.day)
         if datetime.date(2020, 4, 6) <= end_date <= datetime.date(2021, 1, 1):
             end_date += datetime.timedelta(days=365)
         elif datetime.date(2022, 4, 13) <= end_date <= datetime.date(2023, 1, 1):
