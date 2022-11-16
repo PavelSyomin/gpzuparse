@@ -3,10 +3,11 @@ import json
 import mimetypes
 import pathlib
 import traceback
-
+from typing import List
+from collections import defaultdict
 import pandas as pd
 
-from fastapi import FastAPI, Path, Request, UploadFile, File
+from fastapi import FastAPI, Path, Request, UploadFile, File, Form, BackgroundTasks
 from fastapi.responses import HTMLResponse, FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -31,11 +32,19 @@ for folder in folders.values():
     if not path.exists():
         path.mkdir(parents=True)
 
+tasks_map = defaultdict(dict)
+
 @app.get("/", response_class=HTMLResponse)
 @app.post("/", response_class=HTMLResponse)
 async def root(request: Request):
     files = get_files()
     return templates.TemplateResponse("main.html",
+                {"request": request, "data": files})
+
+@app.get("/batch", response_class=HTMLResponse)
+async def get_batch(request: Request):
+    files = get_files()
+    return templates.TemplateResponse("batch.html",
                 {"request": request, "data": files})
 
 @app.get("/view")
@@ -44,8 +53,8 @@ async def view(request: Request, file_name: str):
     return templates.TemplateResponse("view.html", {"request": request, "data": data})
 
 @app.get("/parse")
-async def parse(request: Request, file_name: str):
-    parse_and_save_file(file_name, file_type="json")
+async def parse(request: Request, file_name: str, background_tasks: BackgroundTasks):
+    background_tasks.add_task(parse_and_save_file, file_name, file_type="json")
     return RedirectResponse(f"/view?file_name={file_name}", status_code=302)
 
 @app.get("/download")
@@ -147,21 +156,46 @@ async def devplan_excel(plan_id):
         return FileResponse(path=out_path, media_type=media_type, filename=filename)
 
 @app.post("/devplans/")
-async def create_file(file: UploadFile):
-    filename = file.filename
-    content_type = file.content_type
+async def upload_files(files: List[UploadFile]):
+    for file in files:
+        filename = file.filename
+        content_type = file.content_type
 
-    if content_type != mimetypes.types_map[".pdf"]:
-        return {
-            "status": "Error",
-            "message": "Looks like that you have uploaded non-PDF file"
-        }
+        if content_type != mimetypes.types_map[".pdf"]:
+            return {
+                "status": "Error",
+                "message": "Looks like that you have uploaded non-PDF file"
+            }
 
-    path = pathlib.Path(folders["devplans"]) / filename
-    with open(path, "wb") as f:
-        f.write(file.file.read())
+        path = pathlib.Path(folders["devplans"]) / filename
+        with open(path, "wb") as f:
+            f.write(file.file.read())
 
     return RedirectResponse("/", status_code=302)
+
+@app.get("/upload")
+async def get_upload_page(request: Request):
+    return templates.TemplateResponse("upload.html", {"request": request})
+
+@app.post("/batch/process", status_code=202)
+async def post_batch_process(
+        request: Request,
+        background_tasks: BackgroundTasks,
+        devplans: List = Form()):
+    file_ids = [filename_to_id(devplan) for devplan in devplans]
+    task_id = len(tasks_map)
+    background_tasks.add_task(batch_process, task_id, file_ids)
+
+    return templates.TemplateResponse(
+            "batch-process.html",
+            {"request": request, "task_id": task_id})
+
+@app.get("/batch/tasks/{task_id}")
+async def get_batch_task(task_id: int):
+    if task_id not in tasks_map:
+        return {"status": "Not found"}
+
+    return {"status": "OK", "data": tasks_map[task_id]}
 
 def get_files():
     path = pathlib.Path(folders["devplans"])
@@ -285,3 +319,53 @@ def save_excel(file_name, result):
     final_df.to_excel(str(out_path), index=None)
 
     return out_path
+
+
+def filename_to_id(filename):
+    name, ext = filename.rsplit(".", maxsplit=1)
+    name = name.strip()
+
+    return name
+
+def id_to_filename(id_):
+    return f"{id_}.pdf"
+
+def batch_process(task_id, file_ids):
+    task = {
+        "status": "Started",
+        "log": [],
+        "count": 0,
+        "total": len(file_ids),
+        "result": None
+    }
+    tasks_map[task_id] = task
+    out_paths = {}
+    result = {}
+    tasks_map[task_id]["log"].append("Получена задача на пакетную обработку")
+    tasks_map[task_id]["log"].append("ID документов: " + ",".join(file_ids))
+
+    for file_id in file_ids:
+        tasks_map[task_id]["current"] = file_id
+        tasks_map[task_id]["log"].append("Анализируем файл " + file_id)
+        out_paths[file_id] = parse_and_save_file(file_id)
+        tasks_map[task_id]["log"].append(f"Файл {file_id} проанализирован")
+        tasks_map[task_id]["count"] += 1
+
+    for file_id, json_path in out_paths.items():
+        if not json_path:
+            result[file_id] = "Error"
+            continue
+
+        with open(json_path) as f:
+            file_data = json.load(f)
+        result[file_id] = file_data
+
+    result_path = save_json("batch", result)
+
+    tasks_map[task_id]["status"] = "Completed"
+    tasks_map[task_id]["result"] = result_path
+
+    return None
+
+
+

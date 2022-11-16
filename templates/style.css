@@ -43,6 +43,13 @@ a:hover {
     padding: 1rem;
 }
 
+.upload-page {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
 .upload-logo {
     margin-bottom: 2rem;
 }
@@ -83,4 +90,10 @@ a:hover {
 .upload-file-input {
     max-width: 100%;
     margin-bottom: 1rem;
+    margin-top: 1rem;
+}
+
+.upload-page .upload-logo {
+    width: 400px;
+    max-width: 400px;
 }
