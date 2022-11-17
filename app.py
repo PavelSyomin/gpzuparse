@@ -23,16 +23,15 @@ folders = {
     "thumbnails": "thumbnails"
 }
 
-app = FastAPI()
-templates = Jinja2Templates(directory="templates")
-app.mount("/templates", StaticFiles(directory="templates"), name="templates")
-app.mount("/thumbnails", StaticFiles(directory="thumbnails"), name="thumbnails")
-
-
 for folder in folders.values():
     path = pathlib.Path(folder)
     if not path.exists():
         path.mkdir(parents=True)
+
+app = FastAPI()
+templates = Jinja2Templates(directory="templates")
+app.mount("/templates", StaticFiles(directory="templates"), name="templates")
+app.mount("/thumbnails", StaticFiles(directory="thumbnails"), name="thumbnails")
 
 tasks_map = defaultdict(dict)
 
