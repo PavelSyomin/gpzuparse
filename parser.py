@@ -102,7 +102,7 @@ class Parser():
     }
 
 
-    def __init__(self):
+    def __init__(self, use_cache=True):
         self._file_path = None
         self._cache = None
         self._type = None
@@ -110,6 +110,7 @@ class Parser():
                                           delimiter=";")
 
         self._districts = self._create_distict_dict()
+        self._use_cache = use_cache
 
     def _create_distict_dict(self):
         districts = self._district_data.loc[self._district_data["Name"].str.contains("административный округ")]
@@ -177,6 +178,9 @@ class Parser():
         return cache_file
 
     def _load_from_cache(self, file_path):
+        if not self._use_cache:
+            return None
+
         cache_file = self._build_cache_file_path(file_path)
         if cache_file.exists():
             try:

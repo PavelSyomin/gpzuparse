@@ -181,10 +181,11 @@ async def get_upload_page(request: Request):
 async def post_batch_process(
         request: Request,
         background_tasks: BackgroundTasks,
-        devplans: List = Form()):
+        devplans: List = Form(),
+        use_cache: bool = Form()):
     file_ids = [filename_to_id(devplan) for devplan in devplans]
     task_id = len(tasks_map)
-    background_tasks.add_task(batch_process, task_id, file_ids)
+    background_tasks.add_task(batch_process, task_id, file_ids, use_cache)
 
     return templates.TemplateResponse(
             "batch-process.html",
@@ -232,7 +233,8 @@ def get_files():
         }
         for f in files
     ]
-    print(result)
+
+    result.sort(key=lambda x: x["status"])
     return result
 
 def get_date(timestamp):
@@ -275,8 +277,8 @@ def get_file_urls(file_name):
         "delete": f"delete?file_name={name}",
     }
 
-def parse_and_save_file(file_name, file_type="json"):
-    parser = Parser()
+def parse_and_save_file(file_name, file_type="json", use_cache=True):
+    parser = Parser(use_cache)
     pdf_path = pathlib.Path(folders["devplans"]) / f"{file_name}.pdf"
 
     if not pdf_path.is_file():
@@ -365,7 +367,7 @@ def filename_to_id(filename):
 def id_to_filename(id_):
     return f"{id_}.pdf"
 
-def batch_process(task_id, file_ids):
+def batch_process(task_id, file_ids, use_cache=True):
     task = {
         "status": "Started",
         "log": [],
@@ -383,7 +385,7 @@ def batch_process(task_id, file_ids):
     for file_id in file_ids:
         tasks_map[task_id]["current"] = f"Обрабатывается файл {file_id}"
         tasks_map[task_id]["log"].append("Анализируем файл " + file_id)
-        out_paths[file_id] = parse_and_save_file(file_id)
+        out_paths[file_id] = parse_and_save_file(file_id, use_cache=use_cache)
         tasks_map[task_id]["log"].append(f"Файл {file_id} проанализирован")
         tasks_map[task_id]["count"] += 1
 

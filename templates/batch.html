@@ -22,12 +22,18 @@
                 {% if data | length == 0 %}
                     <p>Файлов нет. Загрузите их с помощью кнопки справа или напрямую скопируйте в папку <code>media/devplans</code> на сервере, где запущено приложение.</p>
                 {% else %}
-                    <form id="files-selector" class="pure-g" action="/batch/process" method="POST">
+                    <form id="files-selector" class="pure-g batch-form" action="/batch/process" method="POST">
                     {% for f in data %}
                     <div class="pure-u-1-3">
                         <div class="batch-item">
                             <label>
-                                {{ f.name }}
+                                <span class="batch-item-title">{{ f.name }}</span>
+                                {% if f.status == "not_parsed" %}
+                                <span class="batch-item-badge-new">Новый</span>
+                                {% else %}
+                                <span class="batch-item-badge-existing">Уже проанализирован</span>
+                                {% endif %}
+
                                 <input type="checkbox" name="devplans" value="{{ f.name }}">
                                 <div class="batch-select-indicator"></div>
                             </label>
@@ -39,6 +45,11 @@
             </div>
             <div class="pure-u-1-4 batch-actions">
                 {% if data | length > 0 %}
+                <label class="batch-actions-use-cache">
+                    Уже проанализированные<br>
+                    <input type="radio" form="files-selector" name="use_cache" value="0"> Обработать заново<br>
+                    <input type="radio" form="files-selector" name="use_cache" value="1" checked> Взять из кэша
+                </label>
                 <button type="submit" form="files-selector" class="pure-button pure-button-primary" href="/batch/process">Проанализировать</button>
                 {% endif %}
                 <a class="pure-button pure-button-primary" href="/upload">Добавить файлы</a>
