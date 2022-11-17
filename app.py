@@ -17,14 +17,13 @@ from parser import Parser
 
 
 folders = {
-    "devplans": "media/devplans",
+    "devplans": "devplans",
     "cache": "cache",
-    "templates": "templates",
     "tmp": "tmp"
 }
 
 app = FastAPI()
-templates = Jinja2Templates(directory=folders["templates"])
+templates = Jinja2Templates(directory="templates")
 app.mount("/templates", StaticFiles(directory="templates"), name="templates")
 
 
@@ -198,12 +197,16 @@ async def get_batch_task(task_id: int):
 
     return {"status": "OK", "data": tasks_map[task_id]}
 
-@app.get("/batch/tasks/{task_id}/{file_type}")
-async def get_batch_task_result(task_id: int, file_type: str):
+@app.get("/batch/tasks/{task_id}/{result_type}")
+async def get_batch_task_result(task_id: int, result_type: str):
     if task_id not in tasks_map:
         return {"status": "Not found"}
-
-    out_path = tasks_map[task_id]["result"].get(file_type)
+    if result_type == "log":
+        file_type = "txt"
+        out_path = save_batch_log(task_id)
+    else:
+        file_type = result_type
+        out_path = tasks_map[task_id]["result"].get(file_type)
     media_type = mimetypes.types_map[f".{file_type}"]
 
     if out_path:
@@ -375,13 +378,12 @@ def batch_process(task_id, file_ids):
     out_paths = {}
     result = {}
     tasks_map[task_id]["log"].append("Получена задача на пакетную обработку")
-    tasks_map[task_id]["log"].append("ID документов: " + ",".join(file_ids))
+    tasks_map[task_id]["log"].append("ID документов: " + ", ".join(file_ids))
 
     for file_id in file_ids:
         tasks_map[task_id]["current"] = f"Обрабатывается файл {file_id}"
         tasks_map[task_id]["log"].append("Анализируем файл " + file_id)
         out_paths[file_id] = parse_and_save_file(file_id)
-        sleep(1)
         tasks_map[task_id]["log"].append(f"Файл {file_id} проанализирован")
         tasks_map[task_id]["count"] += 1
 
@@ -405,4 +407,22 @@ def batch_process(task_id, file_ids):
     return None
 
 
+def save_batch_log(task_id):
+    log = tasks_map.get(task_id, {}).get("log")
+    if not log:
+        return None
+
+    tmp_dir = pathlib.Path(folders["tmp"])
+    if not tmp_dir.exists():
+        tmp_dir.mkdir(parents=True)
+
+    ts = datetime.datetime.now().isoformat()
+    out_file = f"log_task{task_id}_{ts}.txt"
+    out_path = tmp_dir / out_file
+
+    with open(out_path, "w") as f:
+        for line in log:
+            f.write(line + "\n")
+
+    return out_path
 

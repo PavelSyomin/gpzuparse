@@ -104,13 +104,9 @@ class Parser():
 
     def __init__(self):
         self._file_path = None
-        #self._text = {}
-        #self._tables = None
-        #self._npages = None
-        #self._data = None
         self._cache = None
         self._type = None
-        self._district_data = pd.read_csv("./sample_pdfs/data-6434-2018-12-18.csv", encoding="Windows-1251",
+        self._district_data = pd.read_csv("./data/districts.csv", encoding="Windows-1251",
                                           delimiter=";")
 
         self._districts = self._create_distict_dict()
@@ -123,7 +119,8 @@ class Parser():
     def load_pdf(self, file_path):
         self._text = {}
         self._data = {}
-        self._tables = None
+        self._tables = []
+        self._parsed = {}
 
         cached = self._load_from_cache(file_path)
         if cached:
@@ -171,12 +168,6 @@ class Parser():
         # Postprocess (cleanup etc)
         self._postprocess()
 
-        # Parse subject
-        #self._data["subject"] = self._extract_subject()
-
-        # Detect subject type
-        #self._data["subject_type"] = self._extract_subject_type()
-
     def _build_cache_file_path(self, file_path):
         cache_path = pathlib.Path("cache")
         file_path = file_path.replace(".pdf", ".dump")
@@ -217,7 +208,10 @@ class Parser():
             print(e)
 
     def get_result(self):
-        return self._parsed
+        if self._parsed:
+            return self._parsed
+
+        return {"status": "Error"}
 
     def _set_type(self):
         if self._data.get("number", "").startswith("RU"):
@@ -251,7 +245,6 @@ class Parser():
     def _get_attr_by_position(self, text=None, start=None,
                               start_header=None, stop_header=None,
                               offset=None, length=None):
-        # print(stop_header)
         if not all((text, start, start_header, stop_header, offset)):
             return None
 
@@ -312,7 +305,6 @@ class Parser():
             return
 
         subzones = self._get_subzones_from_table(table)
-        #print(subzones)
 
         subzones_data = self._extract_data_by_subzones(subzones)
 
@@ -369,7 +361,6 @@ class Parser():
                 table.loc[i, "subzone_index"] = start_index
                 start_index += 1
         table["subzone_index"].fillna(method="ffill", inplace=True)
-        #print(table)
 
         if table["subzone_index"].any():
             subzones = [part[1] for part in table.groupby("subzone_index")]
@@ -601,10 +592,10 @@ class Parser():
 
     def _get_ids(self):
         subzones = self._data.get("subzones")
-        if not subzones:
-            return None
-
         number = self._data.get("number")
+        if not subzones:
+            return number
+
         keys = list(subzones.keys())
 
         if len(keys) == 1 and keys[0] == "-1":

@@ -33,17 +33,18 @@
                                 <p>{{ f.date }}</p>
                             </div>
                             <div class="devplan-footer">
-                                {% if f.status == "not_parsed" %}
-                                    <a class="devplan-button" href="{{ f.urls.parse }}">Распознать</a>
-                                {% else %}
-                                    <a class="devplan-button" href="{{ f.urls.view }}">Открыть</a>
-                                    <span class="devplan-button">
-                                        Скачать:
-                                        {% for key, value in f.urls.download.items() %}
-                                        <a href="{{ value }}">{{ key }}</a>
-                                        {% endfor %}
-                                    </span>
+                            {% if f.status == "not_parsed" %}
+                                <a class="devplan-button" href="{{ f.urls.parse }}">Распознать</a>
+                            {% else %}
+                                <a class="devplan-button" href="{{ f.urls.view }}">Открыть</a>
+                                <span class="devplan-button">
+                                    Скачать:
+                                    {% for key, value in f.urls.download.items() %}
+                                    <a href="{{ value }}">{{ key }}</a>
+                                    {% endfor %}
+                                </span>
                                 {% endif %}
+                                <a class="devplan-button" href="{{ f.urls.delete }}">Удалить</a>
                             </div>
                         </div>
                     </div>

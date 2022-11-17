@@ -1,6 +1,6 @@
 status_updater = async function() {
     messages = document.querySelector("#messages");
-    links = document.querySelector("#result-links");
+    links = document.querySelector("#links");
     let url = "/batch/tasks/" + task_id;
     let response = await fetch(url);
     if (response.ok) {
@@ -27,6 +27,12 @@ status_updater = async function() {
             xlsx_link.setAttribute("class", "pure-button pure-button-primary");
             xlsx_link.textContent = "Скачать xlsx";
             links.append(xlsx_link);
+
+            log_link = document.createElement("a");
+            log_link.setAttribute("href", "/batch/tasks/" + task_id + "/log");
+            log_link.setAttribute("class", "pure-button pure-button-primary");
+            log_link.textContent = "Скачать лог-файл";
+            links.append(log_link);
 
             return true;
         }
