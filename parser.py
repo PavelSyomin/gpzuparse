@@ -306,7 +306,6 @@ class Parser():
         table = table.iloc[i+3:, :]
         table.rename(columns=new_colnames, inplace=True)
 
-        print(table.columns)
         if table.columns[0] not in ("1_2_3", "1_2_3_4"):
             print("Unrecognized shape for limits table")
             self._data["subzones"] = {}
@@ -381,13 +380,13 @@ class Parser():
 
     def _extract_data_by_subzones(self, subzones):
         data = {}
-        print('subzones', subzones)
+        # print('subzones', subzones)
         for subzone in subzones:
             if subzone["subzone_index"].any():
                 title_cell = str(subzone.iat[0, 0])
             else:
                 title_cell = None
-
+            print(title_cell)
             if title_cell:
                 s_number = re.search(r"No (\d+)", title_cell)
                 if s_number:
@@ -411,7 +410,7 @@ class Parser():
 
             col5 = subzone["5"].str.cat()
             matches = re.findall(r"\d+", col5)
-            #print(matches)
+            print(matches)
             if len(matches) == 2:
                 s_max_height = matches[0]
                 s_max_floors = matches[1]
@@ -447,6 +446,7 @@ class Parser():
                 s_max_density = "-"
 
             col8 = subzone["8"].str.cat(sep=" ")
+            print(col8)
             sentences = re.findall(r"[А-Я][^А-Я]+", col8)
             print(sentences)
 
@@ -462,6 +462,22 @@ class Parser():
                     match = re.search(r"\d+,?\d*", sentence)
                     if match:
                         s_area_total["total"] = match.group(0)
+
+                # living = re.findall('(?<=- жилая часть (кв.м) -\s)\d+', sentence)
+                # if living:
+                s_area_by_floor['living'] = s_area_total['total']
+
+                notliving = re.findall('(?<=нежилая часть (кв.м) -\s)\d+', sentence)
+                if notliving:
+                    s_area_by_floor['nonliving'] = notliving[0]
+                    if notliving[0]:
+                        s_area_by_floor['living'] = s_area_total["total"] - s_area_total["nonliving"]
+
+                livingspace = re.findall('(?<=- жилая часть (кв.м) -\s)\d+', sentence)
+                if livingspace:
+                    s_area_by_floor['livingspace'] = livingspace
+                else:
+                    s_area_by_floor['livingspace'] = 0
 
             data[s_number] = {
                 "area": s_area,
@@ -738,6 +754,7 @@ class Parser():
         return re.findall("(?<=муниципальное образование\s)[а-яА-Я]+", text)
 
     def _get_adm_district(self, settlement):
+        settlement = morph.parse(settlement)[0].normal_form.capitalize()
         code = self._district_data.loc[self._district_data["Name"].str.contains(settlement)]["Kod_okato"].values[0]
         code = str(code)[2:5]
         return self._districts[code]
@@ -873,9 +890,10 @@ class Parser():
 
         objectives, descriptions, floor_areas, total_areas = [], [], [], []
         print('ddddddddddd')
-        print(subzones.values())
+
         for szn in subzones.values():
             descr = szn.get("description")
+            print(descr)
             descriptions.append(descr)
             if descr:
                 objective = "Жилое" if re.match("Жил(ая|ое|ой)", descr) else "Нежилое"
@@ -897,7 +915,7 @@ class Parser():
             else:
                 total_area = dict.fromkeys(total_area_labels, None)
             total_areas.append(total_area)
-
+        print(floor_areas)
         return objectives, descriptions, floor_areas, total_areas
 
     def _get_sums(self, elements):
