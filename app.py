@@ -6,6 +6,7 @@ import traceback
 from typing import List
 from collections import defaultdict
 import pandas as pd
+from time import sleep
 
 from fastapi import FastAPI, Path, Request, UploadFile, File, Form, BackgroundTasks
 from fastapi.responses import HTMLResponse, FileResponse, RedirectResponse
@@ -197,6 +198,24 @@ async def get_batch_task(task_id: int):
 
     return {"status": "OK", "data": tasks_map[task_id]}
 
+@app.get("/batch/tasks/{task_id}/{file_type}")
+async def get_batch_task_result(task_id: int, file_type: str):
+    if task_id not in tasks_map:
+        return {"status": "Not found"}
+
+    out_path = tasks_map[task_id]["result"].get(file_type)
+    media_type = mimetypes.types_map[f".{file_type}"]
+
+    if out_path:
+        path = pathlib.Path(out_path)
+        if not path.is_file():
+            return None
+
+        filename = path.name
+        return FileResponse(path=out_path, media_type=media_type, filename=filename)
+    else:
+        return {"status": "Error", "message": "Cannot download file"}
+
 def get_files():
     path = pathlib.Path(folders["devplans"])
     files = path.glob(r"[RР]*.pdf")
@@ -289,7 +308,7 @@ def save_json(file_name, result):
 
     return out_path
 
-def save_excel(file_name, result):
+def save_excel(file_name, result, multiple=False):
     tmp_dir = pathlib.Path(folders["tmp"])
     if not tmp_dir.exists():
         tmp_dir.mkdir(parents=True)
@@ -298,7 +317,25 @@ def save_excel(file_name, result):
     out_file = f"{file_name}_{ts}.xlsx"
     out_path = tmp_dir / out_file
 
-    df = pd.json_normalize(result, sep=" / ")
+    if multiple:
+        dataframes = []
+        for value in result.values():
+            try:
+                df = json_to_df(value)
+            except:
+                continue
+            dataframes.append(df)
+
+        final_df = pd.concat(dataframes)
+    else:
+        final_df = json_to_df(result)
+
+    final_df.to_excel(str(out_path), index=None)
+
+    return out_path
+
+def json_to_df(json_data):
+    df = pd.json_normalize(json_data, sep=" / ")
 
     colnames = []
     for i, el in enumerate(df.iloc[0, :].items()):
@@ -314,12 +351,7 @@ def save_excel(file_name, result):
         else:
             dfs.append(df.iloc[:, i])
 
-    final_df = pd.concat(dfs, axis=1)
-
-    final_df.to_excel(str(out_path), index=None)
-
-    return out_path
-
+    return pd.concat(dfs, axis=1)
 
 def filename_to_id(filename):
     name, ext = filename.rsplit(".", maxsplit=1)
@@ -336,7 +368,8 @@ def batch_process(task_id, file_ids):
         "log": [],
         "count": 0,
         "total": len(file_ids),
-        "result": None
+        "result": {"json": "", "xlsx": ""},
+        "current": "Подготовка"
     }
     tasks_map[task_id] = task
     out_paths = {}
@@ -345,9 +378,10 @@ def batch_process(task_id, file_ids):
     tasks_map[task_id]["log"].append("ID документов: " + ",".join(file_ids))
 
     for file_id in file_ids:
-        tasks_map[task_id]["current"] = file_id
+        tasks_map[task_id]["current"] = f"Обрабатывается файл {file_id}"
         tasks_map[task_id]["log"].append("Анализируем файл " + file_id)
         out_paths[file_id] = parse_and_save_file(file_id)
+        sleep(1)
         tasks_map[task_id]["log"].append(f"Файл {file_id} проанализирован")
         tasks_map[task_id]["count"] += 1
 
@@ -360,10 +394,13 @@ def batch_process(task_id, file_ids):
             file_data = json.load(f)
         result[file_id] = file_data
 
-    result_path = save_json("batch", result)
+    json_result_path = save_json("batch", result)
+    tasks_map[task_id]["result"]["json"] = json_result_path
 
+    xlsx_result_path = save_excel("batch", result, True)
+    tasks_map[task_id]["result"]["xlsx"] = xlsx_result_path
     tasks_map[task_id]["status"] = "Completed"
-    tasks_map[task_id]["result"] = result_path
+    tasks_map[task_id]["current"] = "Готово"
 
     return None
 

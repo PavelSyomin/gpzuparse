@@ -13,11 +13,11 @@
             <div class="pure-u-1-6"></div>
             <div class="pure-u-2-3">
                 <div class="upload-page">
-                    <img class="pure-img upload-logo" src="{{ url_for('templates', path='/upload_big.png') }}" alt="">
+                    <img class="pure-img logo" src="{{ url_for('templates', path='/upload_big.png') }}" alt="">
                     <form class="upload-form" method="POST" action="/devplans/" enctype="multipart/form-data">
                         <label for="files">Выберите один или несколько файлов</label>
                         <input id="files" class="upload-file-input" type="file" name="files" accept="application/pdf" required multiple>
-                        <button type="submit" class="button-xlarge pure-button upload-button">Загрузить ГПЗУ</button>
+                        <button type="submit" class="button-xlarge pure-button pure-button-primary">Загрузить ГПЗУ</button>
                     </form>
                 </div>
             </div>

@@ -12,25 +12,36 @@
         <div class="container pure-g">
             <div class="pure-u-1-24"></div>
             <div class="pure-u-2-3">
-                <h1>Ранее загруженные файлы</h1>
+                <h1>Загруженные файлы</h1>
+            </div>
+            <div class="pure-u-1-24"></div>
+        </div>
+        <div class="container pure-g">
+            <div class="pure-u-1-24"></div>
+            <div class="pure-u-2-3">
                 {% if data | length == 0 %}
                     <p>Файлов нет. Загрузите их с помощью кнопки справа или напрямую скопируйте в папку <code>media/devplans</code> на сервере, где запущено приложение.</p>
                 {% else %}
-                    <form action="/batch/process" method="POST">
+                    <form id="files-selector" class="pure-g" action="/batch/process" method="POST">
                     {% for f in data %}
-                    <div>
-                        <input type="checkbox" name="devplans" value="{{ f.name }}"> {{ f.name }}
+                    <div class="pure-u-1-3">
+                        <div class="batch-item">
+                            <label>
+                                {{ f.name }}
+                                <input type="checkbox" name="devplans" value="{{ f.name }}">
+                                <div class="batch-select-indicator"></div>
+                            </label>
+                        </div>
                     </div>
                     {% endfor %}
-                    <button type="submit">Проанализировать</button>
                     </form>
                 {% endif %}
             </div>
-            <div class="pure-u-1-4">
-                <div class="upload">
-                    <img class="upload-logo" src="{{ url_for('templates', path='/upload.png') }}" alt="">
-                    <a href="upload" class="button-xlarge pure-button upload-button">Добавить новый файл</a>
-                </div>
+            <div class="pure-u-1-4 batch-actions">
+                {% if data | length > 0 %}
+                <button type="submit" form="files-selector" class="pure-button pure-button-primary" href="/batch/process">Проанализировать</button>
+                {% endif %}
+                <a class="pure-button pure-button-primary" href="/upload">Добавить файлы</a>
             </div>
             <div class="pure-u-1-24"></div>
         </div>

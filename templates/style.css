@@ -1,5 +1,5 @@
 .container {
-    margin-top: 2rem;
+    margin-top: 1rem;
 }
 
 h1, h2, h3, h4, a {
@@ -33,13 +33,13 @@ a:hover {
     margin-right: 1rem;
 }
 
-.upload {
+.upload, .batch {
     background-color: #eff6ff;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    margin-top: 5rem;
+    margin-bottom: 1rem;
     padding: 1rem;
 }
 
@@ -50,11 +50,12 @@ a:hover {
     align-items: center;
 }
 
-.upload-logo {
-    margin-bottom: 2rem;
+.upload-logo, .batch-logo {
+    height: 20vh;
+    margin-bottom: 1rem;
 }
 
-.upload-button {
+.upload-button, .batch-button {
     background-color: #bfdbfe;
 }
 
@@ -66,6 +67,7 @@ a:hover {
     display: flex;
     flex-direction: column;
     align-content: stretch;
+    align-items: center;
 }
 
 .main_col img {
@@ -74,11 +76,19 @@ a:hover {
     max-width: 300px;
 }
 
-.main_col .pure-button {
+.pure-button {
+    border-radius: .5rem;
     display: block;
     margin-bottom: 1rem;
+    width: 100%;
 }
 
+.batch-item {
+    display: block;
+    padding: 0.5rem;
+    margin: 0.5rem;
+    position: relative;
+}
 
 .upload-form {
     width: 100%;
@@ -93,7 +103,26 @@ a:hover {
     margin-top: 1rem;
 }
 
-.upload-page .upload-logo {
+.upload-page .logo {
     width: 400px;
     max-width: 400px;
+}
+
+.batch-select-indicator {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    border: 1px solid #fff;
+    border-radius: .5rem;
+    transition: border-color .25s;
+}
+
+.batch-item input[type="checkbox"] {
+    display: none;
+}
+
+input[type="checkbox"]:checked + .batch-select-indicator {
+    border-color: #0078e7;
 }

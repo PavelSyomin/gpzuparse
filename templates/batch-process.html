@@ -7,57 +7,37 @@
         <link rel="stylesheet" href="{{ url_for('templates', path='/pure-min.css') }}">
         <link rel="stylesheet" href="{{ url_for('templates', path='/grids-responsive-min.css') }}">
         <link rel="stylesheet" href="{{ url_for('templates', path='/style.css') }}">
+        <script src="{{ url_for('templates', path='progressbar.min.js') }}"></script>
+        <script src="{{ url_for('templates', path='/batch-process.js') }}"></script>
+        <script>var task_id = {{ task_id }};</script>
     </head>
     <body>
         <div class="container pure-g">
-            <div class="pure-u-1-24"></div>
-            <div class="pure-u-2-3">
-                <h1>Статус обработки</h1>
+            <div class="pure-u-1-6"></div>
+            <div class="pure-u-2-3 main_col">
+                <h1>Анализ</h1>
+                <div id="progress" style="width:200px; height:200px"></div>
                 <script>
-/**
- * Periodically poll a signal function until either it returns true or a timeout is reached.
- *
- * @param signal function that returns true when the polled operation is complete
- * @param interval time interval between polls in milliseconds
- * @param timeout period of time before giving up on polling
- * @returns true if the signal function returned true, false if the operation timed out
- */
-function poll(signal, interval, timeout) {
-    function pollRecursive() {
-        return signal() ? Promise.resolve(true) : Promise.delay(interval).then(pollRecursive);
-    }
-
-    return pollRecursive()
-        .cancellable()
-        .timeout(timeout)
-        .catch(Promise.TimeoutError, Promise.CancellationError, function () {
-            return false;
-        });
-}
-
-status_updater = async function() {
-    let url = "/batch/tasks/{{ task_id }}";
-    let response = await fetch(url)
-    if (response.ok) {
-        let data = await response.json()
-        status_str = "Обработано " + data["count"] + " из " + data["total"] + " ГПЗУ."
-        document.querySelector("#messages").innerHTML = status_str
-        if (data["status"] == "Completed") {
-            return true;
-        }
-    }
-    else {
-        document.querySelector("#messages").innerHTML = "Не удалось получить информацию о ходе обработки документа. Попробуйте перезагрузить страницу"
-    }
-    return false;
-}
-window.onload = function() {poll(status_updater, 5000, 1e8)};
+                    progressBarParams = {
+                        color: "#afb3bc",
+                        strokeWidth: 5,
+                        trailColor: "#e1e3e6",
+                        svgStyle: {
+                            width: null,
+                            height: "100%"
+                        },
+                        text: {
+                            value: "0/0"
+                        }
+                    };
+                    var progress = new ProgressBar.Circle("#progress", progressBarParams);
                 </script>
                 <div id="messages">
-
+                </div>
+                <div id="links" style="width:100%">
                 </div>
             </div>
-            <div class="pure-u-1-24"></div>
+            <div class="pure-u-1-6"></div>
         </div>
     </body>
 </html>

@@ -13,6 +13,12 @@
             <div class="pure-u-1-24"></div>
             <div class="pure-u-2-3">
                 <h1>Ранее загруженные файлы</h1>
+            </div>
+            <div class="pure-u-1-24"></div>
+        </div>
+        <div class="container pure-g">
+            <div class="pure-u-1-24"></div>
+            <div class="pure-u-2-3">
                 {% if data | length == 0 %}
                     <p>Файлов нет. Загрузите их с помощью кнопки справа или напрямую скопируйте в папку <code>media/devplans</code> на сервере, где запущено приложение.</p>
                 {% else %}
@@ -47,7 +53,11 @@
             <div class="pure-u-1-4">
                 <div class="upload">
                     <img class="upload-logo" src="{{ url_for('templates', path='/upload.png') }}" alt="">
-                    <a href="upload" class="button-xlarge pure-button upload-button">Добавить новый файл</a>
+                    <a href="upload" class="button-xlarge pure-button pure-button-primary">Добавить новый файл</a>
+                </div>
+                <div class="batch">
+                    <img class="batch-logo" src="{{ url_for('templates', path='/batch.png') }}" alt="">
+                    <a href="batch" class="button-xlarge pure-button pure-button-primary">Пакетная обработка</a>
                 </div>
             </div>
             <div class="pure-u-1-24"></div>
