@@ -47,10 +47,7 @@
             <div class="pure-u-1-4">
                 <div class="upload">
                     <img class="upload-logo" src="{{ url_for('templates', path='/upload.png') }}" alt="">
-                    <form class="upload-form" method="POST" action="/devplans/" enctype="multipart/form-data">
-                        <input id="file" class="upload-file-input" type="file" name="file" accept="application/pdf" required>
-                        <button type="submit" class="button-xlarge pure-button upload-button">Добавить новый файл</button>
-                    </form>
+                    <a href="upload" class="button-xlarge pure-button upload-button">Добавить новый файл</a>
                 </div>
             </div>
             <div class="pure-u-1-24"></div>
