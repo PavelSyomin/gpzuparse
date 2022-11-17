@@ -433,7 +433,7 @@ class Parser():
                 s_max_dev_percent = "-"
 
             s_max_density_index = 0 if s_number == "-1" else 1
-            s_max_density_cell = subzone.iat[s_max_density_index, -2]
+            s_max_density_cell = str(subzone.iat[s_max_density_index, -2])
             parts = s_max_density_cell.rsplit(" - ", maxsplit=1)
             if len(parts) == 2:
                 s_max_density = parts[1]

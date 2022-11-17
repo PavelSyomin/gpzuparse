@@ -22,23 +22,41 @@
                 {% if data | length == 0 %}
                     <p>Файлов нет. Загрузите их с помощью кнопки справа или напрямую скопируйте в папку <code>media/devplans</code> на сервере, где запущено приложение.</p>
                 {% else %}
-                    <form id="files-selector" class="pure-g batch-form" action="/batch/process" method="POST">
-                    {% for f in data %}
-                    <div class="pure-u-1-3">
-                        <div class="batch-item">
-                            <label>
-                                <span class="batch-item-title">{{ f.name }}</span>
-                                {% if f.status == "not_parsed" %}
-                                <span class="batch-item-badge-new">Новый</span>
-                                {% else %}
-                                <span class="batch-item-badge-existing">Уже проанализирован</span>
-                                {% endif %}
-
-                                <input type="checkbox" name="devplans" value="{{ f.name }}">
-                                <div class="batch-select-indicator"></div>
-                            </label>
-                        </div>
+                    <div class="batch-form-buttons">
+                        <script>
+                            form_toggle = function(value) {
+                                document.querySelectorAll(".batch-form input[type='checkbox']").forEach(function (x) {x.checked = value; });}
+                        </script>
+                        <button class="pure-button pure-button-secondary" type="button" onclick="form_toggle(true)">Выбрать всё</button>
+                        <button class="pure-button pure-button-secondary" type="button" onclick="form_toggle(false)">Снять выделение</button>
                     </div>
+                    <form id="files-selector" class="pure-g batch-form" action="/batch/process" method="POST">
+                        <script>
+                            countChecked = function() {
+                                var checkedCount = document.querySelectorAll(".batch-form input[type='checkbox']:checked").length;
+                                if (checkedCount != 0) {
+                                    document.querySelector("#submit").disabled = false;
+                                }
+                                else {
+                                    document.querySelector("#submit").disabled = true;
+                                }
+                            }
+                        </script>
+                    {% for f in data %}
+                        <div class="pure-u-1-3">
+                            <div class="batch-item">
+                                <label>
+                                    <span class="batch-item-title">{{ f.name }}</span>
+                                    {% if f.status == "not_parsed" %}
+                                    <span class="batch-item-badge-new">Новый</span>
+                                    {% else %}
+                                    <span class="batch-item-badge-existing">Уже проанализирован</span>
+                                    {% endif %}
+                                    <input type="checkbox" name="devplans" value="{{ f.name }}" onchange="countChecked()">
+                                    <div class="batch-select-indicator"></div>
+                                </label>
+                            </div>
+                        </div>
                     {% endfor %}
                     </form>
                 {% endif %}
@@ -50,7 +68,7 @@
                     <input type="radio" form="files-selector" name="use_cache" value="0"> Обработать заново<br>
                     <input type="radio" form="files-selector" name="use_cache" value="1" checked> Взять из кэша
                 </label>
-                <button type="submit" form="files-selector" class="pure-button pure-button-primary" href="/batch/process">Проанализировать</button>
+                <button id="submit" type="submit" form="files-selector" class="pure-button pure-button-primary" href="/batch/process" disabled>Проанализировать</button>
                 {% endif %}
                 <a class="pure-button pure-button-primary" href="/upload">Добавить файлы</a>
             </div>

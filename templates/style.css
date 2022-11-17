@@ -156,3 +156,12 @@ input[type="checkbox"]:checked + .batch-select-indicator {
 .devplan-img {
     border: 1px dashed #1d4ed8;
 }
+
+.batch-form-buttons {
+    display: flex;
+}
+
+.batch-form-buttons .pure-button {
+    margin-right: 1rem;
+    width: auto;
+}
