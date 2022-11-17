@@ -152,3 +152,7 @@ input[type="checkbox"]:checked + .batch-select-indicator {
     display: block;
     margin-bottom: 1rem;
 }
+
+.devplan-img {
+    border: 1px dashed #1d4ed8;
+}

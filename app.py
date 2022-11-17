@@ -3,11 +3,11 @@ import json
 import mimetypes
 import pathlib
 import traceback
+import subprocess
 from typing import List
 from collections import defaultdict
-import pandas as pd
-from time import sleep
 
+import pandas as pd
 from fastapi import FastAPI, Path, Request, UploadFile, File, Form, BackgroundTasks
 from fastapi.responses import HTMLResponse, FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
@@ -19,12 +19,14 @@ from parser import Parser
 folders = {
     "devplans": "devplans",
     "cache": "cache",
-    "tmp": "tmp"
+    "tmp": "tmp",
+    "thumbnails": "thumbnails"
 }
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
 app.mount("/templates", StaticFiles(directory="templates"), name="templates")
+app.mount("/thumbnails", StaticFiles(directory="thumbnails"), name="thumbnails")
 
 
 for folder in folders.values():
@@ -156,7 +158,7 @@ async def devplan_excel(plan_id):
         return FileResponse(path=out_path, media_type=media_type, filename=filename)
 
 @app.post("/devplans/")
-async def upload_files(files: List[UploadFile]):
+async def upload_files(files: List[UploadFile], background_tasks: BackgroundTasks):
     for file in files:
         filename = file.filename
         content_type = file.content_type
@@ -170,6 +172,8 @@ async def upload_files(files: List[UploadFile]):
         path = pathlib.Path(folders["devplans"]) / filename
         with open(path, "wb") as f:
             f.write(file.file.read())
+
+        make_thumbnail(path)
 
     return RedirectResponse("/", status_code=302)
 
@@ -230,6 +234,7 @@ def get_files():
             "date": get_date(f.stat().st_ctime),
             "status": get_file_status(f.name),
             "urls": get_file_urls(f.name),
+            "thumbnail": get_file_thumbnail(f)
         }
         for f in files
     ]
@@ -242,8 +247,7 @@ def get_date(timestamp):
         return ""
 
     dt = datetime.datetime.fromtimestamp(timestamp)
-    date = dt.date()
-    date_str = date.strftime("%d.%m.%Y")
+    date_str = dt.strftime("%d.%m.%Y в %H:%M")
 
     return date_str
 
@@ -428,3 +432,30 @@ def save_batch_log(task_id):
 
     return out_path
 
+
+def make_thumbnail(path):
+    thumb_path = pathlib.Path("thumbnails") / f"{path.stem}_168x.jpg"
+    params = [
+        "convert",
+        "-density",
+        "100",
+        str(path) +  "[0]",
+        "-resize",
+        "168x",
+        "-flatten",
+        thumb_path
+    ]
+
+    try:
+        subprocess.run(params)
+    except Exception as e:
+        print("Cannot make thumbnail")
+        print(str(e))
+
+
+def get_file_thumbnail(f):
+    thumb_path = pathlib.Path("thumbnails") / f"{f.stem}_168x.jpg"
+    if thumb_path.exists():
+        return str(thumb_path.name)
+
+    return ""

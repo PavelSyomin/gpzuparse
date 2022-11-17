@@ -25,7 +25,7 @@
                     {% for f in data %}
                     <div class="pure-g devplan-row">
                         <div class="pure-u-1-5">
-                            <img class="pure-img" src="{{ url_for('templates', path='/thumb.png') }}" alt="">
+                            <img class="pure-img devplan-img" src="{{ url_for('thumbnails', path=f.thumbnail) }}" alt="">
                         </div>
                         <div class="pure-u-4-5 devplan">
                             <div class="devplan-header">
@@ -34,7 +34,7 @@
                             </div>
                             <div class="devplan-footer">
                             {% if f.status == "not_parsed" %}
-                                <a class="devplan-button" href="{{ f.urls.parse }}">Распознать</a>
+                                <a class="devplan-button" href="{{ f.urls.parse }}">Проанализировать</a>
                             {% else %}
                                 <a class="devplan-button" href="{{ f.urls.view }}">Открыть</a>
                                 <span class="devplan-button">
